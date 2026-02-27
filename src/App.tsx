@@ -128,34 +128,35 @@ export default function App() {
           </div>
 
           {/* Right Column: Queue */}
-          {!isRequestOnly && (
-            <div className="lg:col-span-8">
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.1 }}
-              >
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-display font-bold flex items-center gap-3">
-                    <ListMusic className="w-6 h-6 text-neon-blue" /> 
-                    Lineup da Noite
-                  </h2>
+          <div className={isRequestOnly ? "" : "lg:col-span-8"}>
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.1 }}
+            >
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-display font-bold flex items-center gap-3">
+                  <ListMusic className="w-6 h-6 text-neon-blue" /> 
+                  Lineup da Noite
+                </h2>
+                {!isRequestOnly && (
                   <button 
                     onClick={clearAll}
                     className="text-xs font-mono text-red-400/50 hover:text-red-400 transition-colors uppercase tracking-widest"
                   >
                     Limpar Tudo
                   </button>
-                </div>
-                
-                <QueueList 
-                  requests={requests} 
-                  onStatusChange={handleStatusChange} 
-                  onRemove={removeRequest} 
-                />
-              </motion.div>
-            </div>
-          )}
+                )}
+              </div>
+              
+              <QueueList 
+                requests={requests} 
+                onStatusChange={handleStatusChange} 
+                onRemove={removeRequest} 
+                readOnly={isRequestOnly}
+              />
+            </motion.div>
+          </div>
 
         </div>
       </main>

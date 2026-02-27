@@ -8,9 +8,10 @@ interface QueueListProps {
   requests: SongRequest[];
   onStatusChange: (id: string, status: SongRequest['status']) => void;
   onRemove: (id: string) => void;
+  readOnly?: boolean;
 }
 
-export function QueueList({ requests, onStatusChange, onRemove }: QueueListProps) {
+export function QueueList({ requests, onStatusChange, onRemove, readOnly = false }: QueueListProps) {
   const waiting = requests.filter(r => r.status === 'waiting');
   const singing = requests.filter(r => r.status === 'singing');
   const completed = requests.filter(r => r.status === 'completed');
@@ -42,15 +43,17 @@ export function QueueList({ requests, onStatusChange, onRemove }: QueueListProps
                       {req.songTitle}
                     </p>
                   </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => onStatusChange(req.id, 'completed')}
-                      className="p-3 rounded-full bg-neon-pink/20 text-neon-pink hover:bg-neon-pink hover:text-black transition-all"
-                      title="Finalizar Performance"
-                    >
-                      <CheckCircle2 className="w-6 h-6" />
-                    </button>
-                  </div>
+                  {!readOnly && (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => onStatusChange(req.id, 'completed')}
+                        className="p-3 rounded-full bg-neon-pink/20 text-neon-pink hover:bg-neon-pink hover:text-black transition-all"
+                        title="Finalizar Performance"
+                      >
+                        <CheckCircle2 className="w-6 h-6" />
+                      </button>
+                    </div>
+                  )}
                 </div>
               </motion.div>
             ))}
@@ -88,22 +91,24 @@ export function QueueList({ requests, onStatusChange, onRemove }: QueueListProps
                       </p>
                     </div>
                   </div>
-                  <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
-                      onClick={() => onStatusChange(req.id, 'singing')}
-                      className="p-2 rounded-lg hover:bg-neon-blue/20 text-neon-blue transition-all"
-                      title="Começar a Cantar"
-                    >
-                      <Play className="w-5 h-5" />
-                    </button>
-                    <button
-                      onClick={() => onRemove(req.id)}
-                      className="p-2 rounded-lg hover:bg-red-500/20 text-red-400 transition-all"
-                      title="Remover"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
-                  </div>
+                  {!readOnly && (
+                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={() => onStatusChange(req.id, 'singing')}
+                        className="p-2 rounded-lg hover:bg-neon-blue/20 text-neon-blue transition-all"
+                        title="Começar a Cantar"
+                      >
+                        <Play className="w-5 h-5" />
+                      </button>
+                      <button
+                        onClick={() => onRemove(req.id)}
+                        className="p-2 rounded-lg hover:bg-red-500/20 text-red-400 transition-all"
+                        title="Remover"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
+                    </div>
+                  )}
                 </motion.div>
               ))
             )}
