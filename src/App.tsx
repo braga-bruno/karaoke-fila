@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Toaster, toast } from 'react-hot-toast';
 import { Mic2, Music, ListMusic, Info } from 'lucide-react';
 import { AddRequestForm } from './components/AddRequestForm';
@@ -6,23 +6,40 @@ import { QueueList } from './components/QueueList';
 import { SongRequest } from './types';
 import { motion } from 'motion/react';
 import { cn } from './lib/utils';
+import { io, Socket } from 'socket.io-client';
 
 export default function App() {
-  const [requests, setRequests] = useState<SongRequest[]>(() => {
-    const saved = localStorage.getItem('karaoke-queue');
-    return saved ? JSON.parse(saved) : [];
-  });
-
+  const [requests, setRequests] = useState<SongRequest[]>([]);
   const [isRequestOnly, setIsRequestOnly] = useState(false);
+  const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     setIsRequestOnly(params.get('view') === 'request' || params.get('mode') === 'kiosk');
-  }, []);
 
-  useEffect(() => {
-    localStorage.setItem('karaoke-queue', JSON.stringify(requests));
-  }, [requests]);
+    // Initialize socket connection
+    const socket = io();
+    socketRef.current = socket;
+
+    socket.on('initial_state', (initialRequests: SongRequest[]) => {
+      setRequests(initialRequests);
+    });
+
+    socket.on('request_added', (newRequest: SongRequest) => {
+      setRequests(prev => {
+        if (prev.find(r => r.id === newRequest.id)) return prev;
+        return [...prev, newRequest];
+      });
+    });
+
+    socket.on('request_removed', (id: string) => {
+      setRequests(prev => prev.filter(r => r.id !== id));
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
 
   const addRequest = (singer: string, songTitle: string) => {
     const newRequest: SongRequest = {
@@ -33,7 +50,9 @@ export default function App() {
       status: 'waiting',
       createdAt: Date.now(),
     };
-    setRequests(prev => [...prev, newRequest]);
+    
+    socketRef.current?.emit('add_request', newRequest);
+    
     toast.success(`${singer} adicionado(a) à fila!`, {
       style: {
         background: '#1e1e2e',
@@ -44,19 +63,17 @@ export default function App() {
   };
 
   const handleStatusChange = (id: string, status: SongRequest['status']) => {
-    setRequests(prev => prev.map(req => {
-      if (req.id === id) {
-        return { ...req, status };
-      }
-      if (status === 'singing' && req.status === 'singing') {
-        return { ...req, status: 'completed' };
-      }
-      return req;
-    }));
+    socketRef.current?.emit('update_status', { id, status });
   };
 
   const removeRequest = (id: string) => {
-    setRequests(prev => prev.filter(req => req.id !== id));
+    socketRef.current?.emit('remove_request', id);
+  };
+
+  const clearAll = () => {
+    if (confirm('Limpar todos os pedidos?')) {
+      socketRef.current?.emit('clear_all');
+    }
   };
 
   return (
@@ -124,9 +141,7 @@ export default function App() {
                     Lineup da Noite
                   </h2>
                   <button 
-                    onClick={() => {
-                      if(confirm('Limpar todos os pedidos?')) setRequests([]);
-                    }}
+                    onClick={clearAll}
                     className="text-xs font-mono text-red-400/50 hover:text-red-400 transition-colors uppercase tracking-widest"
                   >
                     Limpar Tudo
