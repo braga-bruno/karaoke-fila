@@ -109,9 +109,8 @@ export default function App() {
             </div>
             <div>
               <h1 className="text-2xl font-display font-black tracking-tighter text-white uppercase">
-                Karaoke<span className="text-neon-blue">Fila</span>
+                KARAOKE<span className="text-neon-blue"> EMO</span>
               </h1>
-              <p className="text-[10px] font-mono text-neon-blue/60 uppercase tracking-widest">Sistema de Gerenciamento</p>
             </div>
           </div>
           
@@ -120,10 +119,6 @@ export default function App() {
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-neon-blue animate-pulse" />
                 {requests.filter(r => r.status === 'waiting').length} Na Fila
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-neon-pink" />
-                {requests.filter(r => r.status === 'singing').length} Cantando
               </div>
             </div>
           )}
@@ -218,7 +213,7 @@ export default function App() {
             </div>
           )}
           <p className="text-xs font-mono text-slate-600 uppercase tracking-[0.3em]">
-            Deixe a música rolar • {new Date().getFullYear()}
+            Deixe a choradeira rolar • {new Date().getFullYear()}
           </p>
         </div>
       </footer>
