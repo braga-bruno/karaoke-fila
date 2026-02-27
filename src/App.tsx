@@ -11,6 +11,7 @@ import { io, Socket } from 'socket.io-client';
 export default function App() {
   const [requests, setRequests] = useState<SongRequest[]>([]);
   const [isRequestOnly, setIsRequestOnly] = useState(false);
+  const [queueStatus, setQueueStatus] = useState<'open' | 'closed'>('open');
   const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
@@ -21,8 +22,22 @@ export default function App() {
     const socket = io();
     socketRef.current = socket;
 
-    socket.on('initial_state', (initialRequests: SongRequest[]) => {
+    socket.on('initial_state', ({ requests: initialRequests, queueStatus: initialStatus }: { requests: SongRequest[], queueStatus: 'open' | 'closed' }) => {
       setRequests(initialRequests);
+      setQueueStatus(initialStatus);
+    });
+
+    socket.on('queue_status_changed', (newStatus: 'open' | 'closed') => {
+      setQueueStatus(newStatus);
+      if (newStatus === 'closed') {
+        toast.error('A fila foi encerrada!', { icon: '🚫' });
+      } else {
+        toast.success('A fila está aberta novamente!', { icon: '✅' });
+      }
+    });
+
+    socket.on('error', (message: string) => {
+      toast.error(message);
     });
 
     socket.on('request_added', (newRequest: SongRequest) => {
@@ -76,6 +91,11 @@ export default function App() {
     }
   };
 
+  const toggleQueue = () => {
+    const newStatus = queueStatus === 'open' ? 'closed' : 'open';
+    socketRef.current?.emit('toggle_queue', newStatus);
+  };
+
   return (
     <div className="min-h-screen bg-dark-bg selection:bg-neon-blue/30">
       <Toaster position="bottom-right" />
@@ -123,7 +143,35 @@ export default function App() {
               animate={{ opacity: 1, y: 0 }}
               className="space-y-8"
             >
-              <AddRequestForm onAdd={addRequest} />
+              {queueStatus === 'closed' ? (
+                <div className="glass-panel p-8 text-center border-red-500/30 bg-red-500/5">
+                  <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Mic2 className="text-red-500 w-8 h-8 opacity-50" />
+                  </div>
+                  <h3 className="text-xl font-display font-bold text-white mb-2 uppercase">Fila Encerrada</h3>
+                  <p className="text-slate-400 text-sm">
+                    Desculpe, não estamos aceitando novos pedidos no momento.
+                  </p>
+                </div>
+              ) : (
+                <AddRequestForm onAdd={addRequest} />
+              )}
+
+              {!isRequestOnly && (
+                <div className="flex flex-col gap-3">
+                  <button
+                    onClick={toggleQueue}
+                    className={cn(
+                      "w-full py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2",
+                      queueStatus === 'open' 
+                        ? "bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500 hover:text-white"
+                        : "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 hover:bg-emerald-500 hover:text-white"
+                    )}
+                  >
+                    {queueStatus === 'open' ? 'Encerrar Fila' : 'Abrir Fila'}
+                  </button>
+                </div>
+              )}
             </motion.div>
           </div>
 
@@ -163,7 +211,12 @@ export default function App() {
 
       {/* Footer Decoration */}
       <footer className="py-12 border-t border-white/5 mt-12">
-        <div className="max-w-6xl mx-auto px-4 text-center">
+        <div className="max-w-6xl mx-auto px-4 text-center space-y-4">
+          {queueStatus === 'closed' && (
+            <div className="inline-block px-6 py-2 rounded-full bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-mono uppercase tracking-widest animate-pulse">
+              Fila Encerrada • Não aceitamos novos pedidos
+            </div>
+          )}
           <p className="text-xs font-mono text-slate-600 uppercase tracking-[0.3em]">
             Deixe a música rolar • {new Date().getFullYear()}
           </p>

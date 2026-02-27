@@ -20,8 +20,18 @@ db.exec(`
     artist TEXT,
     status TEXT NOT NULL,
     createdAt INTEGER NOT NULL
-  )
+  );
+  CREATE TABLE IF NOT EXISTS settings (
+    key TEXT PRIMARY KEY,
+    value TEXT
+  );
+  INSERT OR IGNORE INTO settings (key, value) VALUES ('queue_status', 'open');
 `);
+
+interface Setting {
+  key: string;
+  value: string;
+}
 
 async function startServer() {
   const app = express();
@@ -42,9 +52,18 @@ async function startServer() {
 
     // Send initial state
     const requests = db.prepare("SELECT * FROM requests ORDER BY createdAt ASC").all();
-    socket.emit("initial_state", requests);
+    const settings = db.prepare("SELECT * FROM settings").all() as Setting[];
+    const queueStatus = settings.find(s => s.key === 'queue_status')?.value || 'open';
+    
+    socket.emit("initial_state", { requests, queueStatus });
 
     socket.on("add_request", (data) => {
+      const currentStatus = (db.prepare("SELECT value FROM settings WHERE key = 'queue_status'").get() as Setting | undefined)?.value;
+      if (currentStatus === 'closed') {
+        socket.emit("error", "A fila está encerrada e não aceita novos pedidos.");
+        return;
+      }
+
       const { id, singer, songTitle, artist, status, createdAt } = data;
       try {
         const stmt = db.prepare(
@@ -54,6 +73,15 @@ async function startServer() {
         io.emit("request_added", data);
       } catch (err) {
         console.error("Error adding request:", err);
+      }
+    });
+
+    socket.on("toggle_queue", (newStatus) => {
+      try {
+        db.prepare("UPDATE settings SET value = ? WHERE key = 'queue_status'").run(newStatus);
+        io.emit("queue_status_changed", newStatus);
+      } catch (err) {
+        console.error("Error toggling queue:", err);
       }
     });
 
