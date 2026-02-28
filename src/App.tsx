@@ -22,9 +22,13 @@ export default function App() {
     const socket = io();
     socketRef.current = socket;
 
-    socket.on('initial_state', ({ requests: initialRequests, queueStatus: initialStatus }: { requests: SongRequest[], queueStatus: 'open' | 'closed' }) => {
-      setRequests(initialRequests);
-      setQueueStatus(initialStatus);
+    socket.on('initial_state', (data: { requests: SongRequest[], queueStatus: 'open' | 'closed' }) => {
+      if (data && data.requests) {
+        setRequests(data.requests);
+      }
+      if (data && data.queueStatus) {
+        setQueueStatus(data.queueStatus);
+      }
     });
 
     socket.on('queue_status_changed', (newStatus: 'open' | 'closed') => {

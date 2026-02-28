@@ -96,7 +96,8 @@ async function startServer() {
         
         // Broadcast full state refresh to be safe and handle the multi-update logic
         const allRequests = db.prepare("SELECT * FROM requests ORDER BY createdAt ASC").all();
-        io.emit("initial_state", allRequests);
+        const currentStatus = (db.prepare("SELECT value FROM settings WHERE key = 'queue_status'").get() as Setting | undefined)?.value || 'open';
+        io.emit("initial_state", { requests: allRequests, queueStatus: currentStatus });
       } catch (err) {
         console.error("Error updating status:", err);
       }
@@ -114,7 +115,8 @@ async function startServer() {
     socket.on("clear_all", () => {
       try {
         db.prepare("DELETE FROM requests").run();
-        io.emit("initial_state", []);
+        const currentStatus = (db.prepare("SELECT value FROM settings WHERE key = 'queue_status'").get() as Setting | undefined)?.value || 'open';
+        io.emit("initial_state", { requests: [], queueStatus: currentStatus });
       } catch (err) {
         console.error("Error clearing requests:", err);
       }
